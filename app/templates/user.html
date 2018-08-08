@@ -35,8 +35,12 @@
     {% endif%}
     <hr>
     {% for post in posts %}
-        <p>
-            {{ post.author.username }} says: <b>{{ post.body }}</b>
-        </p>
+        {% include '_post.html' %}
     {% endfor %}
+    {% if next_url %}
+        <a href="{{ next_url }}"><< Older posts</a>
+    {% endif %}
+    {% if prev_url %}
+        <a href="{{ prev_url }}">Newer posts >></a>
+    {% endif %}
 {% endblock %}
