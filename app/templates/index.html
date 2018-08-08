@@ -2,22 +2,20 @@
 
 {% block content %}
     <h1>Hello, {{ current_user.username }}!</h1> <!-- current_user is from flask-login -->
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.post.label }}<br>
-            {{ form.post(cols=32, rows=4) }}<br>
-            {% for error in form.post.errors %}
-            <span style="color:redl">{{ error }}</span>
-            {% endfor %}
-        </p>
-        <p>{{ form.submit }}</p>
-    </form>
-    {% for post in posts %}
-        <div>
+    {% if form %}
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
             <p>
-                {{ post.author.username }} says: <b>{{ post.body }}</b>
+                {{ form.post.label }}<br>
+                {{ form.post(cols=32, rows=4) }}<br>
+                {% for error in form.post.errors %}
+                <span style="color:redl">{{ error }}</span>
+                {% endfor %}
             </p>
-        </div>
+            <p>{{ form.submit }}</p>
+        </form>
+    {% endif %}
+    {% for post in posts %}
+        {% include '_post.html' %}
     {% endfor %}
 {% endblock %}
