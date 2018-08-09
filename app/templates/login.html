@@ -17,7 +17,7 @@
             <br>
             {{ form.password(size=32) }}
             {% for error in form.password.errors %}
-            <span style="color:red;">{{ error }}</span>
+                <span style="color:red;">{{ error }}</span>
             {% endfor %}
         </p>
         <p>
@@ -29,5 +29,6 @@
     </form>
     <p>
         New user? <a href="{{ url_for('register') }}">Click to register!</a>
+        Forgot your password? <a href="{{ url_for('reset_password_request') }}">Click to reset</a>
     <p>
 {% endblock %}
