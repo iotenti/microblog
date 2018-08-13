@@ -83,7 +83,7 @@ class User(UserMixin, db.Model):
                             algorithms=['HS256'])['reset_password']
         except:
             return #catch error if token can't be validated or is expired
-        return User.query.get(id)
+        return User.query.get(id) # returns user if the token is valid
 
 
 class Post(db.Model):
