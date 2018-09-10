@@ -4,10 +4,10 @@
 renders complete from with support for validation errors #}
 
 {% block app_content %}
-    <h1>Register</h1>
+    <h1>{{ _('Register') }}</h1>
     <div class="row">
         <div class="col-md-4">
-            {{ wtf.quick_form(form)}}
+            {{ wtf.quick_form(form) }}
         </div>
     </div>
 {% endblock %}

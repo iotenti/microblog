@@ -6,10 +6,13 @@
             </a>
         </td>
         <td>
-            <a href="{{ url_for('user', username=post.author.username) }}">
-                {{ post.author.username }}
-            </a>
-            says: {{ moment(post.timestamp).fromNow() }}
+            {% set user_link %} <!-- creating a var called user_link, set right in html. cool -->
+                <a href="{{ url_for('user', username=post.author.username) }}">
+                    {{ post.author.username }}
+                </a>
+            {% endset %}
+            {{ _('%(username)s said %(when)s',
+                username=user_link, when=moment(post.timestamp).fromNow()) }} <!-- pass user_link as an agrument to the translation function-->
             <br>
             {{ post.body }}
         </td>

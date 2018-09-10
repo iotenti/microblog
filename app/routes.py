@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, g
 from app import app, db
 from app.forms import LoginForm, PostForm, RegistrationForm, EditProfileForm, ResetPasswordRequestForm, ResetPasswordRequestForm
 from app.models import User, Post
@@ -6,10 +6,27 @@ from app.email import send_password_reset_email
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from datetime import datetime
+from flask_babel import _, get_locale
 
 ###############################
 # Here lies the view functions#
 ###############################
+
+@app.before_request #register the decorated function to be executed right before the view function. 
+#This is extremely useful because now I can insert code that I want to execute before any view function in the application, 
+#and I can have it in a single place.
+def before_request():
+    if current_user.is_authenticated: #check if current user is logged in, if so store it in the db
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
+    g.local = str(get_locale())
+######################################################################################################
+# If you are wondering why there is no db.session.add() before the commit, 
+# consider that when you reference current_user, 
+# Flask-Login will invoke the user loader callback function, 
+# which will run a database query that will put the target user in the database session. 
+# So you can add the user again in this function, but it is not necessary because it is already there.
+######################################################################################################
 
 #'@' are decorators, a unique feature of the Python language. A decorator modifies the function that follows it. 
 #A common pattern with decorators is to use them to register functions as callbacks for certain events. 
@@ -26,14 +43,14 @@ def index():
         post = Post(body=form.post.data, author=current_user)
         db.session.add(post)
         db.session.commit()
-        flash('Your post is now live!')
+        flash(_('Your post is now live!'))
         return redirect(url_for('index'))
     page = request.args.get('page', 1, type=int)
     posts = current_user.followed_posts().paginate(
         page, app.config['POSTS_PER_PAGE'], False)
     next_url = url_for('index', page=posts.next_num) if posts.has_prev else None
     prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
-    return render_template('index.html', title='home', form=form, posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template('index.html', title=_('home'), form=form, posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -43,7 +60,7 @@ def login():
     if form.validate_on_submit(): #if form is valid
         user = User.query.filter_by(username=form.username.data).first() #query username, should return only 1 or 0 names so using first()
         if user is None or not user.check_password(form.password.data): #no username found or password is wrong
-            flash('Invalid username or password') #error message
+            flash(_('Invalid username or password')) #error message
             return redirect(url_for('login')) #redirect to try again
         login_user(user, remember=form.remember_me.data) #method from flask_login (i think) to actually log in user
         next_page = request.args.get('next')#value of NEXT query string agument is obtained. 
@@ -53,7 +70,7 @@ def login():
         if not next_page or url_parse(next_page).netloc != ' ': #URL_PARSE() function and netloc are for security purposes.
             next_page = url_for('index')
         return redirect(next_page)
-    return render_template('login.html', title='Sign In', form=form)
+    return render_template('login.html', title=_('Sign In'), form=form)
 
 @app.route('/logout')
 def logout():
@@ -70,9 +87,9 @@ def register():
         user.set_password(form.password.data)                           #form.username.data is the data the user input in the from
         db.session.add(user)
         db.session.commit() #add and commit user into db
-        flash('Congratulationsm you are now registered user!')
+        flash(_('Congratulationsm you are now registered user!'))
         return redirect(url_for('login'))
-    return render_template('register.html', title='Register', form=form)
+    return render_template('register.html', title=_('Register'), form=form)
     #The form=form syntax may look odd, but is simply passing the form object created in the line above 
     #(and shown on the right side) to the template with the name form\
 
@@ -87,21 +104,6 @@ def user(username): #For example, if the client browser requests URL /user/susan
     return render_template('user.html', user=user, posts=posts.items,
                            next_url=next_url, prev_url=prev_url)#render new template, pass user object and list of posts
 
-@app.before_request #register the decorated function to be executed right before the view function. 
-#This is extremely useful because now I can insert code that I want to execute before any view function in the application, 
-#and I can have it in a single place.
-def before_request():
-    if current_user.is_authenticated: #check if current user is logged in, if so store it in the db
-        current_user.last_seen = datetime.utcnow()
-        db.session.commit()
-######################################################################
-# If you are wondering why there is no db.session.add() before the commit, 
-# consider that when you reference current_user, 
-# Flask-Login will invoke the user loader callback function, 
-# which will run a database query that will put the target user in the database session. 
-# So you can add the user again in this function, but it is not necessary because it is already there.
-######################################################################
-
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
@@ -110,12 +112,12 @@ def edit_profile():
         current_user.username = form.username.data
         current_user.about_me = form.about_me.data
         db.session.commit()
-        flash('Your changes have been saved. Congrat')
+        flash(_('Your changes have been saved. Congrat'))
         return redirect(url_for('edit_profile'))
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html', title='Edit Profile', form=form)
+    return render_template('edit_profile.html', title=_('Edit Profile'), form=form)
 # If validate_on_submit() returns True I copy the data from the form into the user object and then write the object to the database. 
 # But when validate_on_submit() returns False it can be due to two different reasons. First, it can be because the browser just sent a GET request, 
 # which I need to respond to by providing an initial version of the form template. It can also be when the browser sends a POST request with form data, 
@@ -133,14 +135,14 @@ def edit_profile():
 def follow(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('User {} not found.'.format(username))
+        flash(_('User %(username)s not found.', username=username))
         return redirect(url_for('index'))
     if user == current_user:
-        flash('You cannot follow yourself!')
+        flash(_('You cannot follow yourself!'))
         return redirect(url_for('user', username=username))
     current_user.follow(user)
     db.session.commit()
-    flash('You are following {}!'.format(username))
+    flash(_('You are following %(username)s!', username=username))
     return redirect(url_for('user', username=username))
 
 @app.route('/unfollow/<username>')
@@ -148,14 +150,14 @@ def follow(username):
 def unfollow(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
-        flash('User {} not found'.format(username))
+        flash(_('User %(username)s not found.', username=username))
         return redirect(url_for('index'))
     if user == current_user:
-        flash('lol, you cannot unfollow yourself')
+        flash(_('lol, you cannot unfollow yourself'))
         return redirect(url_for('user', username=username))
     current_user.unfollow(user)
     db.session.commit()
-    flash('You are not following {}.'.format(username))
+    flash(_('You are not following %(username)s.', username=username))
     return redirect(url_for('user', username=username))
 
 @app.route('/explore')
@@ -166,7 +168,7 @@ def explore():
         page, app.config['POSTS_PER_PAGE'], False)
     next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
     prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
-    return render_template("index.html", title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("index.html", title=_('Explore'), posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
@@ -177,9 +179,9 @@ def reset_password_request():
         user = User.query.filter_by(email=form.email.data).first()
         if user:
             send_password_reset_email(user)
-        flash('Check your email for instructions to reset your password')
+        flash(_('Check your email for instructions to reset your password'))
         return redirect(url_for('login'))
-    return render_template('reset_password_request.html', title='Reset Password', form=form)
+    return render_template('reset_password_request.html', title=_('Reset Password'), form=form)
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -195,6 +197,6 @@ def reset_password(token):
     if form.validate_on_submit():
         user.set_password(form.password.data)# method from user class to set pass with the data entered into the form
         db.session.commit()
-        flash('Your password has been reset.')
+        flash(_('Your password has been reset.'))
         return redirect(url_for('login'))
     return render_template('reset_password.html', form=form)
