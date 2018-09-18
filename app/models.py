@@ -90,6 +90,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    language = db.Column(db.String(5))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     #The user_id field was initialized as a foreign key to user.id, which means that it references an id value from the users table. 
     # In this reference the user part is the name of the database table for the model. It is an unfortunate inconsistency that in some 
