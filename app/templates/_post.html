@@ -14,10 +14,19 @@
             {{ _('%(username)s said %(when)s',
                 username=user_link, when=moment(post.timestamp).fromNow()) }} <!-- pass user_link as an agrument to the translation function-->
             <br>
-            {{ post.body }}
-            {% if post.language and post.language != g.locale %} <!-- show link only if language is not g.locale (selected language) or not an empty string (which means unknown language) -->
+            <span id="post{{ post.id }}">{{ post.body }}</span>
+            
+            {% if post.language and post.language != g.locale %}
             <br><br>
-            <a href="#">{{ _('Translate') }}</a>
+            <!-- The href element of a link can accept any JavaScript code if it is prefixed with javascript: -->
+            <span id="translation{{ post.id }}">
+                <!-- if the language isn't 'en', show translate link and when clicked, run js translate function (base.html) -->
+                <a href="javascript:translate(
+                            '#post{{ post.id }}',
+                            '#translation{{ post.id }}',
+                            '{{ post.language }}',
+                            '{{ g.locale }}');">{{ _('Translate') }}</a>
+            </span>            
             {% endif %}
         </td>
     </tr>

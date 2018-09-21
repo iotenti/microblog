@@ -53,4 +53,20 @@
     {{ super() }}
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
+
+    <script>//translate function. sourceElem is the #post id, destElem is the #destination id, sourceLang is the language detected by guess_language flask extention
+            // destLang is 'en', or preferred language in browser. 
+        function translate(sourceElem, destElem, sourceLang, destLang) {
+            $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
+            $.post('/translate', { //sends post request to translate route which passes all info to the translate function
+                text: $(sourceElem).text(), //sends text to be translated
+                source_language: sourceLang, //sends source language code
+                dest_language: destLang //sends destination language code
+            }).done(function(response) { //if it is successful, replaces the text to the #destination id
+                $(destElem).text(response['text'])
+            }).fail(function() { //if not successfull sends error message
+                $(destElem).text("{{ _('Error: Could not contact server.') }}");
+            });
+        }
+    </script>
 {% endblock %}

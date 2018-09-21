@@ -1,8 +1,9 @@
-from flask import render_template, flash, redirect, url_for, request, g
+from flask import render_template, flash, redirect, url_for, request, g, jsonify
 from app import app, db
 from app.forms import LoginForm, PostForm, RegistrationForm, EditProfileForm, ResetPasswordRequestForm, ResetPasswordRequestForm
 from app.models import User, Post
 from app.email import send_password_reset_email
+from app.translate import translate
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from datetime import datetime
@@ -20,7 +21,7 @@ def before_request():
     if current_user.is_authenticated: #check if current user is logged in, if so store it in the db
         current_user.last_seen = datetime.utcnow()
         db.session.commit()
-    g.local = str(get_locale())
+    g.locale = str(get_locale())
 ######################################################################################################
 # If you are wondering why there is no db.session.add() before the commit, 
 # consider that when you reference current_user, 
@@ -44,7 +45,7 @@ def index():
         language = guess_language(form.post.data) # run post through guess_language
         if language == 'UNKNOWN' or len(language) > 5: # if unknown or long result, save empty string to db. empty string = unknown language
             language = ''
-        post = Post(body=form.post.data, author=current_user)
+        post = Post(body=form.post.data, author=current_user, language=language)
         db.session.add(post)
         db.session.commit()
         flash(_('Your post is now live!'))
@@ -55,6 +56,14 @@ def index():
     next_url = url_for('index', page=posts.next_num) if posts.has_prev else None
     prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
     return render_template('index.html', title=_('home'), form=form, posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+@app.route('/translate', methods=['POST'])
+@login_required
+def translate_text(): #invoke translate() function and pass it all the args directly from data submitted with the request. incorporated into single key dictionary called 'text'
+    #which is passed as an arg to Flask's jsonify() function. jsonify() converts the dictionary into a JSON formatted payload.
+    return jsonify({'text': translate(request.form['text'], #request.form is an attribute that is a dictionary of all the data from Flask
+                                      request.form['source_language'],
+                                      request.form['dest_language'])})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
