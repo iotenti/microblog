@@ -3,3 +3,4 @@ app.db
 logs/
 venv/
 __pycache__/
+.env
